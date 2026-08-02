@@ -80,17 +80,22 @@ export const CameraView: React.FC<CameraViewProps> = ({
   useEffect(() => {
     if (stream && videoRef.current) {
       videoRef.current.srcObject = stream;
-      videoRef.current
-        .play()
-        .then(() => {
-          setIsCameraActive(true);
-          setCameraError(null);
-          checkTorchSupport(stream);
-        })
-        .catch((err) => {
-          console.warn('Video play error:', err);
-          setCameraError('Không thể khởi chạy luồng Video từ Camera.');
-        });
+      setIsCameraActive(true);
+      setCameraError(null);
+
+      const playPromise = videoRef.current.play();
+      if (playPromise !== undefined) {
+        playPromise
+          .then(() => {
+            checkTorchSupport(stream);
+          })
+          .catch((err) => {
+            console.warn('Video play error:', err);
+            if (err.name !== 'AbortError') {
+              setCameraError('Không thể tự động phát luồng Video. Vui lòng thử lại hoặc mở thẻ mới.');
+            }
+          });
+      }
     }
   }, [stream]);
 
@@ -228,9 +233,13 @@ export const CameraView: React.FC<CameraViewProps> = ({
       setIsCameraActive(false);
     } else if (result.stream) {
       setStream(result.stream);
+      setIsCameraActive(true);
       if (result.activeDeviceId) {
         setSelectedDeviceId(result.activeDeviceId);
       }
+      // Re-fetch device list to get populated labels now that camera permission is granted
+      const availableDevices = await getCameraDevices();
+      setDevices(availableDevices);
     }
   };
 

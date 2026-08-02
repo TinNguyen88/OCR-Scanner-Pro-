@@ -36,7 +36,7 @@ export async function openCameraStream(preferredDeviceId?: string): Promise<Came
   if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
     return {
       stream: new MediaStream(),
-      error: 'Trình duyệt không hỗ trợ truy cập Camera trực tiếp hoặc đang bị giới hạn iFrame.',
+      error: 'Trình duyệt không hỗ trợ truy cập Camera trực tiếp hoặc đang chạy trong môi trường bị giới hạn.',
     };
   }
 
@@ -47,23 +47,19 @@ export async function openCameraStream(preferredDeviceId?: string): Promise<Came
     constraintAttempts.push({
       video: { deviceId: { exact: preferredDeviceId } },
     });
+    constraintAttempts.push({
+      video: { deviceId: preferredDeviceId },
+    });
   }
 
-  // Attempt 1: High quality back camera
+  // Attempt 1: Back camera for mobile (ideal environment)
   constraintAttempts.push({
     video: {
       facingMode: { ideal: 'environment' },
-      width: { ideal: 1920 },
-      height: { ideal: 1080 },
     },
   });
 
-  // Attempt 2: Flexible environment camera
-  constraintAttempts.push({
-    video: { facingMode: { ideal: 'environment' } },
-  });
-
-  // Attempt 3: Any video
+  // Attempt 2: Basic video stream fallback
   constraintAttempts.push({
     video: true,
   });
@@ -95,13 +91,13 @@ export async function openCameraStream(preferredDeviceId?: string): Promise<Came
   let errorMessage = 'Không thể mở Camera.';
   if (lastError) {
     if (lastError.name === 'NotAllowedError' || lastError.name === 'PermissionDeniedError') {
-      errorMessage = 'Quyền truy cập Camera bị từ chối. Vui lòng cấp quyền trong trình duyệt hoặc mở ứng dụng trong thẻ mới.';
+      errorMessage = 'Quyền truy cập Camera bị từ chối. Vui lòng cho phép ứng dụng truy cập Camera trong trình duyệt hoặc bấm "Mở thẻ mới".';
     } else if (lastError.name === 'NotFoundError' || lastError.name === 'DevicesNotFoundError') {
       errorMessage = 'Không tìm thấy thiết bị Camera trên thiết bị của bạn.';
     } else if (lastError.name === 'NotReadableError' || lastError.name === 'TrackStartError') {
       errorMessage = 'Camera đang được sử dụng bởi ứng dụng khác. Vui lòng đóng ứng dụng đó và thử lại.';
     } else if (lastError.name === 'OverconstrainedError') {
-      errorMessage = 'Thiết bị không đáp ứng cấu hình Camera được yêu cầu.';
+      errorMessage = 'Cấu hình Camera không phù hợp với thiết bị. Đang dùng chế độ mặc định...';
     } else if (lastError.message) {
       errorMessage = lastError.message;
     }
