@@ -1,0 +1,10 @@
+{
+  "name": "OCR Scanner Pro",
+  "description": "Phần mềm Quét Căn cước công dân, Hộ chiếu, Giấy tờ & Gemini Live AI - Bản chính thức - Tác giả NGUYỄN TRUNG TÍN (0977530943)",
+  "requestFramePermissions": [
+    "camera"
+  ],
+  "majorCapabilities": [
+    "MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"
+  ]
+}
