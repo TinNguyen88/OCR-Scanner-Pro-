@@ -217,11 +217,12 @@ Chú ý giữ nguyên các dấu tiếng Việt (ngã, hỏi, sắc, huyền, n�
     }
   });
 
-  // Vite middleware for development or fallback if dist bundle is missing
+  // Check if we are running in bundled production mode (dist/server.cjs) vs dev mode (tsx server.ts)
   const distPath = path.join(process.cwd(), 'dist');
-  const hasDist = fs.existsSync(path.join(distPath, 'index.html'));
+  const isRunningBundledServer = process.argv[1]?.includes('server.cjs') || process.argv[1]?.includes('dist');
+  const isProductionMode = process.env.NODE_ENV === 'production' && isRunningBundledServer && fs.existsSync(path.join(distPath, 'index.html'));
 
-  if (process.env.NODE_ENV !== 'production' || !hasDist) {
+  if (!isProductionMode) {
     const { createServer: createViteServer } = await import('vite');
     const vite = await createViteServer({
       server: { middlewareMode: true },
