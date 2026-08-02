@@ -30,13 +30,33 @@ export async function getCameraDevices(): Promise<CameraDevice[]> {
 }
 
 /**
+ * Detects if app is running inside an iframe or in-app webview
+ */
+export function getEnvironmentInfo() {
+  const isIframe = window.self !== window.top;
+  const userAgent = navigator.userAgent || '';
+  const isInAppBrowser = /Zalo|FBAN|FBAV|FB_IAB|Instagram|Line|MicroMessenger|Messenger/i.test(userAgent);
+  const isMobile = /Android|iPhone|iPad|iPod/i.test(userAgent);
+
+  return {
+    isIframe,
+    isInAppBrowser,
+    isMobile,
+  };
+}
+
+/**
  * Robustly requests camera stream using multi-tier constraint fallbacks
  */
 export async function openCameraStream(preferredDeviceId?: string): Promise<CameraStreamResult> {
+  const env = getEnvironmentInfo();
+
   if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
     return {
       stream: new MediaStream(),
-      error: 'Trình duyệt không hỗ trợ truy cập Camera trực tiếp hoặc đang chạy trong môi trường bị giới hạn.',
+      error: env.isInAppBrowser
+        ? 'Trình duyệt Zalo/FB đang giới hạn luồng Camera. Hãy chọn "Chụp Trực Tiếp từ Máy Ảnh" hoặc Mở bằng Safari/Chrome.'
+        : 'Trình duyệt không hỗ trợ truy cập Camera trực tiếp.',
     };
   }
 
@@ -52,14 +72,22 @@ export async function openCameraStream(preferredDeviceId?: string): Promise<Came
     });
   }
 
-  // Attempt 1: Back camera for mobile (ideal environment)
+  // Attempt 1: Direct facingMode environment string (best for iOS Safari / Chrome Mobile)
   constraintAttempts.push({
-    video: {
-      facingMode: { ideal: 'environment' },
-    },
+    video: { facingMode: 'environment' },
   });
 
-  // Attempt 2: Basic video stream fallback
+  // Attempt 2: Ideal environment facingMode
+  constraintAttempts.push({
+    video: { facingMode: { ideal: 'environment' } },
+  });
+
+  // Attempt 3: User facing camera fallback
+  constraintAttempts.push({
+    video: { facingMode: 'user' },
+  });
+
+  // Attempt 4: Basic video stream fallback
   constraintAttempts.push({
     video: true,
   });

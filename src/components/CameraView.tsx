@@ -44,6 +44,7 @@ export const CameraView: React.FC<CameraViewProps> = ({
 }) => {
   const videoRef = useRef<HTMLVideoElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const directCameraInputRef = useRef<HTMLInputElement>(null);
 
   const [stream, setStream] = useState<MediaStream | null>(null);
   const [devices, setDevices] = useState<CameraDevice[]>([]);
@@ -79,11 +80,15 @@ export const CameraView: React.FC<CameraViewProps> = ({
   // Bind media stream to video element
   useEffect(() => {
     if (stream && videoRef.current) {
-      videoRef.current.srcObject = stream;
+      const video = videoRef.current;
+      video.srcObject = stream;
+      video.setAttribute('playsinline', 'true');
+      video.setAttribute('webkit-playsinline', 'true');
+      video.muted = true;
       setIsCameraActive(true);
       setCameraError(null);
 
-      const playPromise = videoRef.current.play();
+      const playPromise = video.play();
       if (playPromise !== undefined) {
         playPromise
           .then(() => {
@@ -92,7 +97,7 @@ export const CameraView: React.FC<CameraViewProps> = ({
           .catch((err) => {
             console.warn('Video play error:', err);
             if (err.name !== 'AbortError') {
-              setCameraError('Không thể tự động phát luồng Video. Vui lòng thử lại hoặc mở thẻ mới.');
+              setCameraError('Không thể tự động phát luồng Video. Vui lòng bấm "Mở thẻ mới" hoặc dùng nút "Chụp từ Máy ảnh".');
             }
           });
       }
@@ -374,28 +379,40 @@ export const CameraView: React.FC<CameraViewProps> = ({
 
       {/* Camera Error / Permission Alert */}
       {cameraError && (
-        <div className="bg-amber-50 border border-amber-200 text-amber-900 rounded-xl p-4 mb-4 text-sm flex flex-col md:flex-row md:items-center justify-between gap-3">
+        <div className="bg-amber-50 border-2 border-amber-300 text-amber-900 rounded-2xl p-4 mb-4 text-sm shadow-sm flex flex-col md:flex-row md:items-center justify-between gap-3">
           <div className="flex items-start gap-3">
             <AlertCircle className="w-5 h-5 text-amber-600 shrink-0 mt-0.5" />
             <div>
-              <p className="font-semibold text-amber-900">Lỗi truy cập Camera:</p>
-              <p className="text-amber-800 text-xs mt-0.5 leading-relaxed">{cameraError}</p>
+              <p className="font-bold text-amber-950 flex items-center gap-1.5">
+                <span>⚠️ Lỗi mở Camera Stream Trực Tiếp</span>
+              </p>
+              <p className="text-amber-900 text-xs mt-1 leading-relaxed">{cameraError}</p>
+              <p className="text-amber-800 text-[11px] mt-1.5 font-medium">
+                👉 <strong>Mẹo:</strong> Nếu bạn đang dùng Zalo/Facebook/iFrame, hãy bấm <strong>"📸 Chụp Bằng Máy Ảnh Gốc"</strong> bên dưới để chụp trực tiếp 100% thành công!
+              </p>
             </div>
           </div>
-          <div className="flex items-center gap-2 shrink-0">
+          <div className="flex items-center gap-2 flex-wrap shrink-0">
+            <button
+              onClick={() => directCameraInputRef.current?.click()}
+              className="px-3.5 py-2 bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold rounded-xl flex items-center gap-1.5 transition-all shadow-md active:scale-95 cursor-pointer animate-bounce"
+            >
+              <Camera className="w-4 h-4" />
+              <span>📸 Chụp Bằng Máy Ảnh Gốc</span>
+            </button>
             <button
               onClick={onOpenNewTab}
-              className="px-3 py-1.5 bg-amber-600 hover:bg-amber-700 text-white text-xs font-semibold rounded-lg flex items-center gap-1 transition-all"
+              className="px-3 py-2 bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-semibold rounded-xl flex items-center gap-1.5 transition-all shadow-sm active:scale-95 cursor-pointer"
             >
               <ExternalLink className="w-3.5 h-3.5" />
-              <span>Mở thẻ mới</span>
+              <span>Mở Thẻ Mới</span>
             </button>
             <button
               onClick={() => fileInputRef.current?.click()}
-              className="px-3 py-1.5 bg-slate-800 hover:bg-slate-900 text-white text-xs font-semibold rounded-lg flex items-center gap-1 transition-all"
+              className="px-3 py-2 bg-slate-800 hover:bg-slate-900 text-white text-xs font-semibold rounded-xl flex items-center gap-1.5 transition-all cursor-pointer"
             >
               <Upload className="w-3.5 h-3.5" />
-              <span>Tải file ảnh</span>
+              <span>Tải Ảnh Từ Thư Viện</span>
             </button>
           </div>
         </div>
@@ -541,10 +558,10 @@ export const CameraView: React.FC<CameraViewProps> = ({
               & trích xuất dữ liệu không cần bấm chụp.
             </p>
 
-            <div className="flex flex-wrap justify-center gap-3">
+            <div className="flex flex-wrap justify-center gap-2.5">
               <button
                 onClick={handleToggleGeminiLive}
-                className="px-5 py-2.5 bg-gradient-to-r from-cyan-500 via-indigo-600 to-purple-600 text-white font-bold text-sm rounded-xl shadow-lg transition-all flex items-center gap-2 active:scale-95 cursor-pointer"
+                className="px-4 py-2.5 bg-gradient-to-r from-cyan-500 via-indigo-600 to-purple-600 text-white font-bold text-xs md:text-sm rounded-xl shadow-lg transition-all flex items-center gap-2 active:scale-95 cursor-pointer"
               >
                 <Sparkles className="w-4 h-4 text-cyan-200" />
                 <span>Bật Gemini Live Ngay</span>
@@ -553,18 +570,26 @@ export const CameraView: React.FC<CameraViewProps> = ({
               <button
                 onClick={() => handleStartCamera()}
                 disabled={isLoadingCamera}
-                className="px-5 py-2.5 bg-indigo-600 hover:bg-indigo-500 text-white font-semibold text-sm rounded-xl shadow-md transition-all flex items-center gap-2 active:scale-95 disabled:opacity-50 cursor-pointer"
+                className="px-4 py-2.5 bg-indigo-600 hover:bg-indigo-500 text-white font-semibold text-xs md:text-sm rounded-xl shadow-md transition-all flex items-center gap-2 active:scale-95 disabled:opacity-50 cursor-pointer"
               >
                 <Camera className="w-4 h-4" />
                 <span>Mở Camera Thường</span>
               </button>
 
               <button
+                onClick={() => directCameraInputRef.current?.click()}
+                className="px-4 py-2.5 bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs md:text-sm rounded-xl shadow-md transition-all flex items-center gap-2 active:scale-95 cursor-pointer"
+              >
+                <Camera className="w-4 h-4 text-emerald-100" />
+                <span>📸 Chụp Trực Tiếp từ Máy Ảnh</span>
+              </button>
+
+              <button
                 onClick={() => fileInputRef.current?.click()}
-                className="px-5 py-2.5 bg-slate-800 hover:bg-slate-700 text-white font-semibold text-sm rounded-xl shadow-md transition-all flex items-center gap-2 active:scale-95 cursor-pointer"
+                className="px-4 py-2.5 bg-slate-800 hover:bg-slate-700 text-white font-semibold text-xs md:text-sm rounded-xl shadow-md transition-all flex items-center gap-2 active:scale-95 cursor-pointer"
               >
                 <Upload className="w-4 h-4" />
-                <span>Upload Ảnh</span>
+                <span>Tải Ảnh Từ Thư Viện</span>
               </button>
             </div>
           </div>
@@ -667,6 +692,14 @@ export const CameraView: React.FC<CameraViewProps> = ({
         ref={fileInputRef}
         type="file"
         accept="image/*"
+        className="hidden"
+        onChange={handleFileInputChange}
+      />
+      <input
+        ref={directCameraInputRef}
+        type="file"
+        accept="image/*"
+        capture="environment"
         className="hidden"
         onChange={handleFileInputChange}
       />
